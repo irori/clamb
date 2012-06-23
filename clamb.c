@@ -662,6 +662,8 @@ int main(int argc, char *argv[])
 	    print_stats = 1;
 	else if (strcmp(argv[i], "-p") == 0)
 	    parse_only = 1;
+        else if (strcmp(argv[i], "-u") == 0)
+	    setbuf(stdout, NULL);
 	else
 	    errexit("unknown option %s\n", argv[i]);
     }
