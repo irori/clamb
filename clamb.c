@@ -13,8 +13,17 @@
 #include <time.h>
 #include <assert.h>
 
+#define VERSION "0.1.0"
+
 #define INITIAL_HEAP_SIZE 128*1024
 #define RDSTACK_SIZE    100000
+
+// Verbosity levels
+enum {
+    V_NONE,
+    V_STATS,
+    V_GC,
+} verbosity = V_NONE;
 
 /**********************************************************************
  *  Storage management
@@ -86,7 +95,6 @@ typedef struct tagPair {
 Pair *heap_area, *free_ptr;
 int heap_size, next_heap_size;
 
-int gc_notify = 0;
 double total_gc_time = 0.0;
 
 void gc_run(Cell *save1, Cell *save2);
@@ -173,7 +181,7 @@ void gc_run(Cell *save1, Cell *save2)
     }
 
     num_alive = free_ptr - (heap_area - next_heap_size);
-    if (gc_notify)
+    if (verbosity >= V_GC)
         fprintf(stderr, "GC: %d / %d\n", num_alive, heap_size);
 
     if (heap_size != next_heap_size || num_alive * 8 > next_heap_size) {
@@ -645,26 +653,38 @@ void eval_print(Cell root)
  *  Main
  **********************************************************************/
 
+void help(const char *progname) {
+    printf("Usage: %s [options] input-file...\n", progname);
+    printf("  -h       print this help and exit\n");
+    printf("  -u       disable stdout buffering\n");
+    printf("  -p       parse the program, print it and exit\n");
+    printf("  -v       print version and exit\n");
+    printf("  -v[0-2]  set verbosity level (default: 0)\n");
+}
+
 int main(int argc, char *argv[])
 {
     Cell root;
     clock_t start;
-    char *prog_file = NULL;
     int i;
-    int print_stats = 0;
     int parse_only = 0;
     
     for (i = 1; i < argc && argv[i][0] == '-'; i++) {
-        if (strcmp(argv[i], "-g") == 0)
-            gc_notify = 1;
-        else if (strcmp(argv[i], "-s") == 0)
-            print_stats = 1;
-        else if (strcmp(argv[i], "-p") == 0)
+        if (argv[i][1] == 'v' && isdigit(argv[i][2])) {
+            verbosity = argv[i][2] - '0';
+        } else if (strcmp(argv[i], "-h") == 0) {
+            help(argv[0]);
+            return 0;
+        } else if (strcmp(argv[i], "-p") == 0) {
             parse_only = 1;
-        else if (strcmp(argv[i], "-u") == 0)
+        } else if (strcmp(argv[i], "-u") == 0) {
             setbuf(stdout, NULL);
-        else
-            errexit("unknown option %s\n", argv[i]);
+        } else if (strcmp(argv[i], "-v") == 0) {
+            printf("Universal Lambda interpreter " VERSION " by irori\n");
+            return 0;
+        } else {
+            errexit("unknown option '%s' (Try -h for more information)\n", argv[i]);
+        }
     }
 
     input_init(argv + i);
@@ -680,7 +700,7 @@ int main(int argc, char *argv[])
     start = clock();
     eval_print(root);
 
-    if (print_stats) {
+    if (verbosity >= V_STATS) {
         double evaltime = (clock() - start) / (double)CLOCKS_PER_SEC;
 
         printf("\n%d reductions\n", reductions);
