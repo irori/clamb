@@ -6,6 +6,7 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <ctype.h>
@@ -31,7 +32,7 @@
 struct tagPair;
 typedef struct tagPair *Cell;
 #define CELL(x) ((Cell)(x))
-#define TAG(c)  ((int)(c) & 0x03)
+#define TAG(c)  ((intptr_t)(c) & 0x03)
 
 /* pair */
 typedef struct tagPair {
@@ -45,13 +46,13 @@ typedef struct tagPair {
 
 /* integer */
 #define isint(c)        (TAG(c) == 1)
-#define mkint(n)        CELL(((n) << 2) + 1)
-#define intof(c)        ((signed int)(c) >> 2)
+#define mkint(n)        CELL(((intptr_t)(n) << 2) + 1)
+#define intof(c)        ((intptr_t)(c) >> 2)
 
 /* combinator */
 #define iscomb(c)       (TAG(c) == 2)
 #define mkcomb(n)       CELL(((n) << 2) + 2)
-#define combof(c)       ((int)(c) >> 2)
+#define combof(c)       ((intptr_t)(c) >> 2)
 #define COMB_S          mkcomb(0)
 #define COMB_K          mkcomb(1)
 #define COMB_I          mkcomb(2)
@@ -70,12 +71,12 @@ typedef struct tagPair {
 #define COMB_RETURN     mkcomb(15)
 
 /* character */
-#define ischar(c)       (((int)(c) & 0x07) == 0x03)
-#define mkchar(n)       CELL(((n) << 3) + 0x03)
-#define charof(c)       ((int)(c) >> 3)
+#define ischar(c)       (((intptr_t)(c) & 0x07) == 0x03)
+#define mkchar(n)       CELL(((intptr_t)(n) << 3) + 0x03)
+#define charof(c)       ((intptr_t)(c) >> 3)
 
 /* immediate objects */
-#define isimm(c)        (((int)(c) & 0x07) == 0x07)
+#define isimm(c)        (((intptr_t)(c) & 0x07) == 0x07)
 #define mkimm(n)        CELL(((n) << 3) + 0x07)
 #define NIL             mkimm(0)
 #define COPIED          mkimm(1)
@@ -108,7 +109,7 @@ void storage_init(int size)
     heap_area = malloc(sizeof(Pair) * heap_size);
     if (heap_area == NULL)
         errexit("Cannot allocate heap storage (%d cells)\n", heap_size);
-    assert(((int)heap_area & 3) == 0 && (sizeof(Pair) & 3) == 0);
+    assert(((intptr_t)heap_area & 3) == 0 && (sizeof(Pair) & 3) == 0);
     
     free_ptr = heap_area;
     heap_area += heap_size;
